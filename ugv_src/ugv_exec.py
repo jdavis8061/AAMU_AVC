@@ -1,9 +1,18 @@
 #import asyncio
 #import logging
 #from mavsdk import System
+#from ArducamDepthCamera import ArducamCamera, Connection
 
 def initialize_camera():
     print("Hello camera")
+    #Creates an instance of the camera
+    #camera = ArducamCamera()
+    #ret = camera.open(Connection.MODE_USB)
+    #if ret == 0:
+    #    print("Camera initialized successfully.")
+    #else:
+    #    print(f"Failed to initialize camera. Error code: {ret}")
+
 
 def initialize_pixhawk():
     print("Hello Pixhawk")
