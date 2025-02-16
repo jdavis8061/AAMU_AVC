@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../../ArducamDepthCamera_venv"
+		},
+		{
+			"path": "../../../mavsdk_venv"
+		}
+	],
+	"settings": {
+		"python.envs": {
+			"ArducamDepthCamera_venv": "./ArducamDepthCamera_venv/bin/python",
+			"mavsdk_venv": "./mavsdk_venv/bin/python"
+		}
+	}
+}
