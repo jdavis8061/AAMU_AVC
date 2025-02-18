@@ -3,22 +3,8 @@ import cv2
 #import asyncio
 #import logging
 #from mavsdk import System
-#import ArducamDepthCamera
-#print(dir(ArducamDepthCamera.Connection))
-#from ArducamDepthCamera import ArducamCamera, Connection
-
-def initialize_camera_DC():
-    print("Hello camera")
-    #Creates an instance of the camera
     
-    camera = ArducamCamera()
-    ret = camera.open(Connection.USB)
-    if ret == 0:
-        print("Camera initialized successfully.")
-    else:
-        print(f"Failed to initialize camera. Error code: {ret}")
-    
-def initialize_camera_cv2():
+def initialize_camera():
     cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
@@ -72,4 +58,4 @@ initialize()
 run()
 finalize()
 """
-initialize_camera_cv2()
+initialize_camera()
