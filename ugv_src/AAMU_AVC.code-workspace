@@ -8,12 +8,19 @@
 		},
 		{
 			"path": "../../../mavsdk_venv"
+		},
+		{
+			"path": "../../../dronekit_venv"
 		}
 	],
 	"settings": {
 		"python.envs": {
 			"ArducamDepthCamera_venv": "./ArducamDepthCamera_venv/bin/python",
-			"mavsdk_venv": "./mavsdk_venv/bin/python"
-		}
+			"mavsdk_venv": "./mavsdk_venv/bin/python",
+			"dronekit_venv": "./dronekit_venv/bin/python"
+		},
+		"python.autoComplete.extraPaths": [
+			"/usr/lib/python3/dist-packages"
+		]
 	}
 }
