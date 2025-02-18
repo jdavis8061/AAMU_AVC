@@ -1,8 +1,8 @@
 
 import cv2
-#import asyncio
-#import logging
-#from mavsdk import System
+import asyncio
+import logging
+from mavsdk import System
     
 def initialize_camera():
     cap = cv2.VideoCapture(0)
@@ -24,10 +24,10 @@ def initialize_camera():
     cap.release()
     cv2.destroyAllWindows()
 
-def initialize_pixhawk():
+async def initialize_pixhawk():
     print("Hello Pixhawk")
-#    drone = System()
-#    await drone.connect()
+    drone = System()
+    await drone.connect()
 
 def initialize_wifi():
     print("Hello Wifi")
@@ -38,7 +38,7 @@ def initialize_mp_params():
 def initialize_logger():
     print("Hello logger")
 
-"""def initialize():
+def initialize():
     print("initialize")
     initialize_logger()
     initialize_pixhawk()
@@ -57,5 +57,3 @@ print("Hello UGV World")
 initialize()
 run()
 finalize()
-"""
-initialize_camera()

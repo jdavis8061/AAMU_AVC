@@ -4,13 +4,10 @@
 			"path": ".."
 		},
 		{
-			"path": "../../../ArducamDepthCamera_venv"
+			"path": "../../AAMU_AVC/libs/mavsdk_venv"
 		},
 		{
-			"path": "../../../mavsdk_venv"
-		},
-		{
-			"path": "../../../dronekit_venv"
+			"path": "../../AAMU_AVC/libs/dronekit_venv"
 		}
 	],
 	"settings": {
