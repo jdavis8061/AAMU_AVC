@@ -2,6 +2,7 @@
 import cv2
 import asyncio
 import logging
+import os
 from mavsdk import System
     
 def initialize_camera():
@@ -54,6 +55,7 @@ def finalize():
 
 
 print("Hello UGV World")
+print(os.environ)
 initialize()
 run()
 finalize()
