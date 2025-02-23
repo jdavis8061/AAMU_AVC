@@ -4,6 +4,7 @@ import asyncio
 import logging
 import os
 import pymavlink
+import dronekit
 from mavsdk import System
     
 def initialize_camera():
