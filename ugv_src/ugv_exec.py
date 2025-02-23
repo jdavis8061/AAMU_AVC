@@ -3,6 +3,7 @@ import cv2
 import asyncio
 import logging
 import os
+import pymavlink
 from mavsdk import System
     
 def initialize_camera():
