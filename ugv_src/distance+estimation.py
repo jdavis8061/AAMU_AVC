@@ -34,6 +34,8 @@ while True:
             marker_corners, MARKER_SIZE, cam_mat, dist_coef
         )
         total_markers = range(0, marker_IDs.size)
+        if ids[0] == 23:
+            print("correct marker detected")
         for ids, corners, i in zip(marker_IDs, marker_corners, total_markers):
             cv.polylines(
                 frame, [corners.astype(np.int32)], True, (0, 255, 255), 4, cv.LINE_AA
