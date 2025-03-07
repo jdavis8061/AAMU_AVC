@@ -18,7 +18,8 @@ marker_dict = aruco.getPredefinedDictionary(aruco.DICT_6X6_50)
 
 param_markers = aruco.DetectorParameters()
 
-cap = cv.VideoCapture("http://10.235.100.3:8080/video") #give the server id shown in IP webcam App
+#cap = cv.VideoCapture("http://10.235.100.3:8080/video") #give the server id shown in IP webcam App
+cap = cv.VideoCapture(1) #uses USB Camera
 
 while True:
     ret, frame = cap.read()
@@ -64,6 +65,7 @@ while True:
                 (0, 0, 255),
                 2,
                 cv.LINE_AA,
+                
             )
             cv.putText(
                 frame,
