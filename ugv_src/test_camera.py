@@ -1,4 +1,7 @@
 import cv2
+import numpy as np
+print(np.__version__)
+print(cv2.__version__)
 
 def list_cameras():
     print("Scanning for available cameras...")
@@ -11,7 +14,7 @@ def list_cameras():
             print(f"❌ No camera at index: {i}")
 
 #list_cameras()
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1) #Change to 0 when using Raspberry Pi, 1 when using laptop
 
 if not cap.isOpened():
     print("❌ Failed to open camera")
