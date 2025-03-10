@@ -21,7 +21,7 @@ param_markers = aruco.DetectorParameters()
 
 #cap = cv.VideoCapture("http://10.235.100.3:8080/video") #give the server id shown in IP webcam App
 cap = cv.VideoCapture(1) #uses USB Camera Added (Change to 0 when using Raspberry Pi, 1 when using laptop)
-servo_activated = False
+push_complete = False
 
 while True:
     ret, frame = cap.read()
@@ -38,10 +38,10 @@ while True:
         total_markers = range(0, marker_IDs.size)
         for ids, corners, i in zip(marker_IDs, marker_corners, total_markers):
             print(ids[0])
-            if not servo_activated and ids[0] == 23:
+            if not push_complete and ids[0] == 23:
                 print("correct marker detected")
                 test_pusher.activate_servo()
-                servo_activated = True
+                push_complete = True
             cv.polylines(
                 frame, [corners.astype(np.int32)], True, (0, 255, 255), 4, cv.LINE_AA
             )
