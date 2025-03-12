@@ -2,8 +2,9 @@ import cv2 as cv
 from cv2 import aruco
 import numpy as np
 import test_pusher
+import os
 
-calib_data_path = r"C:\Users\allst\OneDrive\Desktop\AAMU_AVC\AAMU_AVC\ugv_src\MultiMatrix.npz"
+calib_data_path = os.path.join(os.path.dirname(__file__), "..", "MultiMatrix.npz")
 
 calib_data = np.load(calib_data_path)
 print(calib_data.files)
@@ -20,7 +21,7 @@ marker_dict = aruco.getPredefinedDictionary(aruco.DICT_6X6_50)
 param_markers = aruco.DetectorParameters()
 
 #cap = cv.VideoCapture("http://10.235.100.3:8080/video") #give the server id shown in IP webcam App
-cap = cv.VideoCapture(1) #uses USB Camera Added (Change to 0 when using Raspberry Pi, 1 when using laptop)
+cap = cv.VideoCapture(0) #uses USB Camera Added (Change to 0 when using Raspberry Pi, 1 when using laptop)
 push_complete = False
 
 while True:
