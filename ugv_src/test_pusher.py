@@ -1,47 +1,30 @@
+import serial
 import time
 
-# Simulate the serial.Serial class
-class MockSerial:
-    def __init__(self, port, baud_rate, timeout):
-        self.port = port
-        self.baud_rate = baud_rate
-        self.timeout = timeout
-        print(f"MockSerial connected on {self.port} at {self.baud_rate} baud.")
+#list min: 992
+#listed max: 2000
+#actual min: 1040
+#actual max: 1950
 
-    def write(self, data):
-        # Simulate sending a command
-        print(f"Sending command: {data.decode('utf-8')}")
+SERIAL_PORT = "/dev/serial/by-id/usb-Pololu_Corporation_Pololu_Micro_Maestro_6-Servo_Controller_00454274-if00"
+BAUD_RATE = 9600
 
-    def close(self):
-        print("MockSerial closed.")
+def send_command(channel, target):
+    command = bytearray([0x84, channel, target & 0x7F, (target >> 7) & 0x7F])
+    with serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1) as ser:
+        ser.write(command)
+        time.sleep(0.1)
 
-# Replace the real 'serial.Serial' with the mock during testing
-serial = MockSerial
-
-# Your servo control function
 def activate_servo():
-    try:
-        # Open serial connection (simulated)
-        ser = serial("COM3", 9600, timeout=1)  # Change COM port if necessary
-        time.sleep(2)  # Allow time for the connection to establish
+    print("Activating Servo...")
+    send_command(0, 8000)
+    time.sleep(10)
 
-        # Command to move the linear servo (simulated)
-        command = "M\n"  # Replace with the actual command from the servo's manual
-        ser.write(command.encode('utf-8'))
-        print("Servo activated!")
+def retract_servo():
+    print("Retracting Servo...")
+    send_command(0, 4000)
+    time.sleep(5)
 
-        # Keep the servo engaged for 2 seconds before stopping
-        time.sleep(2)
-
-        # Stop the servo (simulated)
-        stop_command = "S\n"  # Replace with the actual stop command
-        ser.write(stop_command.encode('utf-8'))
-        print("Servo stopped.")
-
-        # Close the serial connection (simulated)
-        ser.close()
-
-    except Exception as e:
-        print(f"Error: {e}")
-
-
+activate_servo()
+time.sleep(2)
+retract_servo()
