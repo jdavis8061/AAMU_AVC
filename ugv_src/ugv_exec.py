@@ -7,11 +7,11 @@ import logging
 import os
 import pymavlink
 #import dronekit
-import test_pusher
+import actuator
 from mavsdk import System
     
 def initialize_camera():
-    calib_data_path = r"C:\Users\allst\OneDrive\Desktop\AAMU_AVC\AAMU_AVC\ugv_src\MultiMatrix.npz"
+    calib_data_path = os.path.join(os.path.dirname(__file__), "..", "MultiMatrix.npz")
 
     calib_data = np.load(calib_data_path)
     print(calib_data.files)
@@ -28,7 +28,7 @@ def initialize_camera():
     param_markers = aruco.DetectorParameters()
 
     #cap = cv.VideoCapture("http://10.235.100.3:8080/video") #give the server id shown in IP webcam App
-    cap = cv.VideoCapture(1) #uses USB Camera Added (Change to 0 when using Raspberry Pi, 1 when using laptop)
+    cap = cv.VideoCapture(0) #uses USB Camera Added (Change to 0 when using Raspberry Pi, 1 when using laptop)
     push_complete = False
 
     if not cap.isOpened():
@@ -50,7 +50,7 @@ def initialize_camera():
             for ids, corners, i in zip(marker_IDs, marker_corners, total_markers):
                 if not push_complete and ids[0] == 23:
                     print("correct marker detected")
-                    test_pusher.activate_servo()
+                    actuator.push_then_retract()
                     push_complete = True
                     break
                 cv.polylines(
