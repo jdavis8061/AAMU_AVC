@@ -1,8 +1,10 @@
 import cv2 as cv
 from cv2 import aruco
 import numpy as np
+import test_pusher_sim
 import test_pusher
 import os
+import time
 
 calib_data_path = os.path.join(os.path.dirname(__file__), "..", "MultiMatrix.npz")
 
@@ -42,6 +44,8 @@ while True:
             if not push_complete and ids[0] == 23:
                 print("correct marker detected")
                 test_pusher.activate_servo()
+                time.sleep(2)
+                test_pusher.retract_servo()
                 push_complete = True
             cv.polylines(
                 frame, [corners.astype(np.int32)], True, (0, 255, 255), 4, cv.LINE_AA
