@@ -1,10 +1,11 @@
-import cv2 as cv
+import socket
+'''import cv2 as cv
 from cv2 import aruco
 import numpy as np
 import asyncio
-import logging
+import logging'''
 import os
-import pymavlink
+'''import pymavlink
 #import dronekit
 from mavsdk import System
 
@@ -102,13 +103,30 @@ def initialize_pixhawk():
     print("Hello Pixhawk")
 #    drone = System()
 #    await drone.connect()
-
+'''
 def initialize_wifi():
     print("Hello Wifi")
+    # host = '10.235.153.196' 
+    # port = 5000 
+    # s = socket.socket() 
+    # s.connect((host,port)) 
+    # print("Connected to",host) 
+    # while True: 
+    #     message = input("->") 
+    #     s.send(message.encode()) #convert to bytes then send
+
+    HOST = '10.235.194.195'    # The server's hostname or IP address 
+    PORT = 65432              # The same port as used by the server 
+    with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:     
+        s.connect((HOST, PORT))     
+        s.sendall(b'Hello, world')     
+        data = s.recv(1024) 
+        
+        print('Sent', repr(data))
 
 
 # Change this IP to match your drone's IP address (default is usually 192.168.4.1)
-DRONE_IP = "192.168.4.1"
+'''DRONE_IP = "192.168.4.1"
 
 async def run():
     drone = System()
@@ -149,18 +167,20 @@ def initialize_mp_params():
 
 def initialize_logger():
     print("Hello logger")
+
+'''    
 def initialize():
     print("initialize")
-    initialize_logger()
-    initialize_pixhawk()
+    #initialize_logger()
+    #initialize_pixhawk()
     initialize_wifi()
-    initialize_camera()
-    initialize_mp_params()
-
+    #initialize_camera()
+    #initialize_mp_params()
+'''
 def run():
     print("run")
 
 def finalize():
     print("finalize")
-
+'''
 initialize()
