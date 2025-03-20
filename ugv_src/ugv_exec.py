@@ -1,6 +1,6 @@
 import socket
 import os
-'''import cv2 as cv
+import cv2 as cv
 from cv2 import aruco
 import numpy as np
 import asyncio
@@ -48,7 +48,7 @@ def initialize_camera():
             )
             total_markers = range(0, marker_IDs.size)
             for ids, corners, i in zip(marker_IDs, marker_corners, total_markers):
-                if not push_complete and ids[0] == 23:
+                if not push_complete and ids[0] == 23: #change based on marker id
                     print("correct marker detected")
                     actuator.push_then_retract()
                     push_complete = True
@@ -63,14 +63,10 @@ def initialize_camera():
                 bottom_right = corners[2].ravel()
                 bottom_left = corners[3].ravel()
 
-
-            
                 # calculate the distance
                 distance = np.sqrt(
                     tVec[i][0][2] ** 2 + tVec[i][0][0] ** 2 + tVec[i][0][1] ** 2
                 )
-
-
 
                 # for pose of the marker
                 point = cv.drawFrameAxes(frame, cam_mat, dist_coef, rVec[i], tVec[i], 4, 4)
@@ -102,28 +98,7 @@ def initialize_camera():
             break
     cap.release()
     cv.destroyAllWindows()
-    
-    '''
-'''
-    cap = cv2.VideoCapture(0)
 
-    if not cap.isOpened():
-        print("❌ Failed to open camera")
-        exit()
-#move to run later
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            print("❌ Failed to grab frame")
-            break
-
-        cv2.imshow("Camera Feed", frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-#move to finalize later
-    cap.release()
-    cv2.destroyAllWindows()
-    '''
 '''
 def run_camera():
     print("running camera")
@@ -195,13 +170,13 @@ def finalize_camera():
     print("closing camera")
     cap.release()
     cv2.destroyAllWindows()
+'''
 
 async def initialize_pixhawk():
     print("Hello Pixhawk")
     drone = System()
     await drone.connect()
-'
-'''
+
 def initialize_wifi():
     print("Hello Wifi")
 
@@ -245,28 +220,28 @@ def initialize_wifi():
                 print(data)
                 conn.sendall(data)
 
-'''
+
 def initialize_mp_params():
     print("Hello Mission Planner")
 
 def initialize_logger():
     print("Hello logger")
-'''
+
 def initialize():
     print("initialize")
     #initialize_logger()
     #initialize_pixhawk()
-    initialize_wifi()
+    #initialize_wifi()
     #initialize_camera()
     #initialize_mp_params()
-'''
+
 def run():
     print("run")
 
 def finalize():
     print("finalize")
 
-'''
+
 print("Hello UGV World")
 print(os.environ)
 initialize()
