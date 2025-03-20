@@ -1,10 +1,10 @@
-
-import cv2 as cv
+import socket
+import os
+'''import cv2 as cv
 from cv2 import aruco
 import numpy as np
 import asyncio
 import logging
-import os
 import pymavlink
 #import dronekit
 import actuator
@@ -104,6 +104,7 @@ def initialize_camera():
     cv.destroyAllWindows()
     
     '''
+'''
     cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
@@ -123,10 +124,9 @@ def initialize_camera():
     cap.release()
     cv2.destroyAllWindows()
     '''
-
+'''
 def run_camera():
     print("running camera")
-    '''
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -190,44 +190,83 @@ def run_camera():
         key = cv.waitKey(1)
         if key == ord("q"):
             break
-        '''
 
 def finalize_camera():
     print("closing camera")
-    '''
     cap.release()
     cv2.destroyAllWindows()
-    '''
 
 async def initialize_pixhawk():
     print("Hello Pixhawk")
     drone = System()
     await drone.connect()
-
+'
+'''
 def initialize_wifi():
     print("Hello Wifi")
 
+
+# host = ""
+# port = 5000
+
+
+# s = socket.socket()
+# s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #avoid reuse error msg
+# s.bind((host,port))
+
+
+# print ("Server started. Waiting for connection...")
+# s.listen()
+# c, addr = s.accept()
+# print ("Connection from: ",addr)
+
+
+# while True:
+#     #data is in bytes format, use decode() to transform it into a string
+#     data = c.recv(1024)
+#     if not data:
+#         break
+#     value = data.decode()
+#     print ("Received: ",value)
+# print ("Disconnected. Exiting.")
+
+    HOST = ''  # Listen on all available interfaces 
+    PORT = 65432        # Port to listen on (non-privileged ports are > 1023) 
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:     
+        s.bind((HOST, PORT))     
+        s.listen()     
+        conn, addr = s.accept()     
+        with conn:         
+            print('Connected by', addr)         
+            while True:             
+                data = conn.recv(1024)             
+                if not data:                 
+                    break             
+                print(data)
+                conn.sendall(data)
+
+'''
 def initialize_mp_params():
     print("Hello Mission Planner")
 
 def initialize_logger():
     print("Hello logger")
-
+'''
 def initialize():
     print("initialize")
     #initialize_logger()
     #initialize_pixhawk()
-    #initialize_wifi()
-    initialize_camera()
+    initialize_wifi()
+    #initialize_camera()
     #initialize_mp_params()
-
+'''
 def run():
     print("run")
 
 def finalize():
     print("finalize")
 
-
+'''
 print("Hello UGV World")
 print(os.environ)
 initialize()
