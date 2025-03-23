@@ -1,16 +1,24 @@
+#!/usr/bin/env python3
+
 import socket
-'''import cv2 as cv
+import asyncio
+from mavsdk import System
+import sys
+
+import cv2 as cv
 from cv2 import aruco
 import numpy as np
-import asyncio
-import logging'''
-import os
-'''import pymavlink
-#import dronekit
-from mavsdk import System
 
-print("Hello UAV World")
-def initialize_camera():
+# import logging'''
+import os
+# '''import pymavlink
+# #import dronekit
+
+HOST = '192.168.86.241'    # The server's hostname or IP address 
+PORT = 65432              # The same port as used by the server 
+
+
+async def initialize_camera():
     calib_data_path = os.path.join(os.path.dirname(__file__), "..", "MultiMatrix.npz")
 
     calib_data = np.load(calib_data_path)
@@ -99,88 +107,71 @@ def initialize_camera():
     cap.release()
     cv.destroyAllWindows()
 
-def initialize_pixhawk():
-    print("Hello Pixhawk")
-#    drone = System()
-#    await drone.connect()
-'''
-def initialize_wifi():
-    print("Hello Wifi")
-    # host = '10.235.153.196' 
-    # port = 5000 
-    # s = socket.socket() 
-    # s.connect((host,port)) 
-    # print("Connected to",host) 
-    # while True: 
-    #     message = input("->") 
-    #     s.send(message.encode()) #convert to bytes then send
+async def initialize_pixhawk(drone):
 
-    HOST = '10.235.194.195'    # The server's hostname or IP address 
-    PORT = 65432              # The same port as used by the server 
-    with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:     
-        s.connect((HOST, PORT))     
-        s.sendall(b'Hello, world')     
-        data = s.recv(1024) 
-        
-        print('Sent', repr(data))
-
-
-# Change this IP to match your drone's IP address (default is usually 192.168.4.1)
-'''DRONE_IP = "192.168.4.1"
-
-async def run():
-    drone = System()
-    print(f"Connecting to drone at {DRONE_IP}...")
+    await drone.connect(system_address="serial:///dev/ttyACM0:57600")
     
-    await drone.connect(system_address=f"udp://{DRONE_IP}:14550")
-
+    print("Waiting for UAV drone to connect...")
     async for state in drone.core.connection_state():
         if state.is_connected:
-            print("✅ Successfully connected to the drone!")
-            break
-    
-    async for health in drone.telemetry.health():
-        if health.is_global_position_ok and health.is_home_position_ok:
-            print("✅ Drone is ready for flight")
+            print(f"-- Connected to UAV drone!")
             break
 
-    async for position in drone.telemetry.position():
-        print(f"📍 Drone Position: {position.latitude_deg}, {position.longitude_deg}")
-        break
 
-    await drone.action.arm()
-    print("🛠 Drone Armed!")
+def initialize_wifi():
+    print("Hello Wifi")
 
-    await drone.action.takeoff()
-    print("🚀 Takeoff!")
+    # s = socket.socket() 
+    with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:     
+        s.connect((HOST, PORT))
+        print("Wifi connected to UGV at ",HOST, ":", PORT) 
+        # s.sendall(b'Hello, world')     
+        # data = s.recv(1024) 
+        #     s.send(message.encode()) #convert to bytes then send 
+        # print('Sent', repr(data))
 
-    await asyncio.sleep(5)  # Keep script running for observation
 
-    await drone.action.land()
-    print("🛬 Landing...")
-
-# Run the script
-asyncio.run(run())
-
-def initialize_mp_params():
+async def initialize_mp_params(drone):
     print("Hello Mission Planner")
 
-def initialize_logger():
-    print("Hello logger")
+    all_params = any
 
-'''    
-def initialize():
-    print("initialize")
-    #initialize_logger()
-    #initialize_pixhawk()
+    # Get the list of parameters
+    all_params = await drone.param.get_all_params()
+
+    # Iterate through all int parameters
+    for param in all_params.int_params:
+        print(f"{param.name}: {param.value}")
+
+    # Iterate through all float parameters
+    for param in all_params.float_params:
+        print(f"{param.name}: {param.value}")
+
+async def initialize_logger():
+     print("Hello logger")
+
+
+async def initialize(drone):
+
+    
+    # initialize_logger()
+    await initialize_pixhawk(drone)
     initialize_wifi()
-    #initialize_camera()
-    #initialize_mp_params()
-'''
-def run():
-    print("run")
+    await initialize_mp_params(drone)
+    await initialize_camera()
 
-def finalize():
-    print("finalize")
-'''
-initialize()
+async def run():
+     print("run")
+
+async def finalize():
+     print("finalize")
+
+if __name__ == "__main__":
+
+    print("Starting UAV Application...")
+    
+    drone = System()
+
+    asyncio.run(initialize(drone))
+    asyncio.run(run())
+    asyncio.run(finalize())
