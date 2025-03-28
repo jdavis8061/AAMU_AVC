@@ -1,8 +1,6 @@
 import cv2 as cv
 from cv2 import aruco
 import numpy as np
-import test_pusher_sim
-import test_pusher
 import os
 import time
 
@@ -24,7 +22,6 @@ param_markers = aruco.DetectorParameters()
 
 #cap = cv.VideoCapture("http://10.235.100.3:8080/video") #give the server id shown in IP webcam App
 cap = cv.VideoCapture(0) #uses USB Camera Added (Change to 0 when using Raspberry Pi, 1 when using laptop)
-push_complete = False
 
 while True:
     ret, frame = cap.read()
@@ -40,13 +37,7 @@ while True:
         )
         total_markers = range(0, marker_IDs.size)
         for ids, corners, i in zip(marker_IDs, marker_corners, total_markers):
-            print(ids[0])
-            if not push_complete and ids[0] == 23:
-                print("correct marker detected")
-                test_pusher.activate_servo()
-                time.sleep(2)
-                test_pusher.retract_servo()
-                push_complete = True
+            print(f"{ids[0]}, x:{round(tVec[i][0][0],1)} y: {round(tVec[i][0][1],1)}")
             cv.polylines(
                 frame, [corners.astype(np.int32)], True, (0, 255, 255), 4, cv.LINE_AA
             )
