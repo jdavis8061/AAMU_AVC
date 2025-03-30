@@ -6,6 +6,7 @@ from mavsdk import System
 import sys
 import struct
 from pymavlink import mavutil
+import time
 
 import cv2 as cv
 from cv2 import aruco
@@ -162,16 +163,16 @@ def initialize_wifi_with_gps_numbers():
     print("Hello Wifi")
     lat, long = get_gps()
     # s = socket.socket() 
-    with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:     
-        s.connect((HOST, PORT))
-        print("Wifi connected to UGV at ",HOST, ":", PORT) 
+    client_s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)    
+    client_s.connect((HOST, PORT))
+    print("Wifi connected to UGV at ",HOST, ":", PORT) 
         # s.sendall(b'Hello, world')     
         # data = s.recv(1024) 
         #     s.send(message.encode()) #convert to bytes then send 
         # print('Sent', repr(data))
-        aruco_coordinates = struct.pack('ff', lat, long)
-        s.send(aruco_coordinates)
-        s.close
+    gps_coordinates = struct.pack('dd', lat, long)
+    client_s.send(gps_coordinates)
+    client_s.close()
 
 async def initialize_mp_params(drone):
     print("Hello Mission Planner")
@@ -208,8 +209,10 @@ async def run():
 async def finalize():
      print("finalize")
 
+#initialize_wifi_with_gps_numbers()
+#time.sleep(10)
 initialize_wifi_with_gps_numbers()
-
+'''
 if __name__ == "__main__":
 
     print("Starting UAV Application...")
@@ -218,4 +221,4 @@ if __name__ == "__main__":
 
     asyncio.run(initialize(drone))
     asyncio.run(run())
-    asyncio.run(finalize())
+    asyncio.run(finalize())'''
