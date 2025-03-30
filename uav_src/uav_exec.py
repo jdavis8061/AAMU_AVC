@@ -5,6 +5,7 @@ import asyncio
 from mavsdk import System
 import sys
 import struct
+from pymavlink import mavutil
 
 import cv2 as cv
 from cv2 import aruco
@@ -118,7 +119,18 @@ async def initialize_pixhawk(drone):
             print(f"-- Connected to UAV drone!")
             break
 
-
+def get_gps():
+    master=mavutil.mavlink_connection('/dev/serial0', baud=57600)
+    master.wait_heartbeat()
+    print("Connected to Vehicle")
+    while True:
+        msg = master.recv_match(type='GPS_RAW_INT', blocking=True)
+        if msg:
+            aruco_latitude = msg.lat / 1e7
+            aruco_longitude = msg.lon / 1e7
+            print(f'ArUco Lat:{aruco_latitude}, aruco longitude:{aruco_longitude}')
+            return aruco_latitude, aruco_longitude
+    
 def initialize_wifi():
     print("Hello Wifi")
 
@@ -131,9 +143,24 @@ def initialize_wifi():
         #     s.send(message.encode()) #convert to bytes then send 
         # print('Sent', repr(data))
 
-def initialize_wifi_with_numbers(lat, long):
+def initialize_wifi_with_ex_numbers(lat, long):
     print("Hello Wifi")
 
+    # s = socket.socket() 
+    with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:     
+        s.connect((HOST, PORT))
+        print("Wifi connected to UGV at ",HOST, ":", PORT) 
+        # s.sendall(b'Hello, world')     
+        # data = s.recv(1024) 
+        #     s.send(message.encode()) #convert to bytes then send 
+        # print('Sent', repr(data))
+        aruco_coordinates = struct.pack('ff', lat, long)
+        s.send(aruco_coordinates)
+        s.close
+
+def initialize_wifi_with_gps_numbers():
+    print("Hello Wifi")
+    lat, long = get_gps()
     # s = socket.socket() 
     with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:     
         s.connect((HOST, PORT))
@@ -181,7 +208,7 @@ async def run():
 async def finalize():
      print("finalize")
 
-#initialize_wifi_with_numbers(30, 86)
+initialize_wifi_with_gps_numbers()
 
 if __name__ == "__main__":
 
