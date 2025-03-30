@@ -126,10 +126,10 @@ def get_gps():
     while True:
         msg = master.recv_match(type='GPS_RAW_INT', blocking=True)
         if msg:
-            aruco_latitude = msg.lat / 1e7
-            aruco_longitude = msg.lon / 1e7
-            print(f'ArUco Lat:{aruco_latitude}, aruco longitude:{aruco_longitude}')
-            return aruco_latitude, aruco_longitude
+            gps_latitude = msg.lat / 1e7
+            gps_longitude = msg.lon / 1e7
+            print(f'gps Lat:{gps_latitude}, gps long:{gps_longitude}')
+            return gps_latitude, gps_longitude
     
 def initialize_wifi():
     print("Hello Wifi")
