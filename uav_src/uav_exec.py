@@ -4,6 +4,7 @@ import socket
 import asyncio
 from mavsdk import System
 import sys
+import struct
 
 import cv2 as cv
 from cv2 import aruco
@@ -14,7 +15,7 @@ import os
 # '''import pymavlink
 # #import dronekit
 
-HOST = '192.168.86.241'    # The server's hostname or IP address 
+HOST = '10.235.254.239'    # The server's hostname or IP address 
 PORT = 65432              # The same port as used by the server 
 
 
@@ -130,6 +131,20 @@ def initialize_wifi():
         #     s.send(message.encode()) #convert to bytes then send 
         # print('Sent', repr(data))
 
+def initialize_wifi_with_numbers(lat, long):
+    print("Hello Wifi")
+
+    # s = socket.socket() 
+    with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:     
+        s.connect((HOST, PORT))
+        print("Wifi connected to UGV at ",HOST, ":", PORT) 
+        # s.sendall(b'Hello, world')     
+        # data = s.recv(1024) 
+        #     s.send(message.encode()) #convert to bytes then send 
+        # print('Sent', repr(data))
+        aruco_coordinates = struct.pack('ff', lat, long)
+        s.send(aruco_coordinates)
+        s.close
 
 async def initialize_mp_params(drone):
     print("Hello Mission Planner")
@@ -156,7 +171,7 @@ async def initialize(drone):
     
     # initialize_logger()
     await initialize_pixhawk(drone)
-    initialize_wifi()
+    #initialize_wifi()
     await initialize_mp_params(drone)
     await initialize_camera()
 
@@ -165,6 +180,8 @@ async def run():
 
 async def finalize():
      print("finalize")
+
+#initialize_wifi_with_numbers(30, 86)
 
 if __name__ == "__main__":
 
