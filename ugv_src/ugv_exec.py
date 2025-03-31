@@ -9,6 +9,7 @@ import pymavlink
 #import dronekit
 import actuator
 from mavsdk import System
+import struct
     
 def initialize_camera():
     calib_data_path = os.path.join(os.path.dirname(__file__), "..", "MultiMatrix.npz")
@@ -179,46 +180,25 @@ async def initialize_pixhawk():
 
 def initialize_wifi():
     print("Hello Wifi")
+    global aruco_lat
+    aruco_lat = 5.0
+    global aruco_long
+    aruco_long = 5.0
+    print ("ArUco Lat & Long set to ", aruco_lat, " & ", aruco_long)
+    print ("Waiting for new values from UAV...")
 
-
-# host = ""
-# port = 5000
-
-
-# s = socket.socket()
-# s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #avoid reuse error msg
-# s.bind((host,port))
-
-
-# print ("Server started. Waiting for connection...")
-# s.listen()
-# c, addr = s.accept()
-# print ("Connection from: ",addr)
-
-
-# while True:
-#     #data is in bytes format, use decode() to transform it into a string
-#     data = c.recv(1024)
-#     if not data:
-#         break
-#     value = data.decode()
-#     print ("Received: ",value)
-# print ("Disconnected. Exiting.")
-
-    HOST = ''  # Listen on all available interfaces 
+    HOST = '10.235.254.239'  # Listen on all available interfaces 
     PORT = 65432        # Port to listen on (non-privileged ports are > 1023) 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:     
-        s.bind((HOST, PORT))     
-        s.listen()     
-        conn, addr = s.accept()     
-        with conn:         
-            print('Connected by', addr)         
-            while True:             
-                data = conn.recv(1024)             
-                if not data:                 
-                    break             
-                print(data)
-                conn.sendall(data)
+    server_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)     
+    server_s.bind((HOST, PORT))     
+    server_s.listen()     
+    conn, addr = server_s.accept()
+    print(f"Connected by {addr}")
+    data = conn.recv(16)
+    aruco_lat, aruco_long = struct.unpack('dd', data)
+    print(f"Received ArUco Lat={aruco_lat}, ArUco Long={aruco_long}")
+    conn.close()
+    server_s.close()
 
 
 def initialize_mp_params():
