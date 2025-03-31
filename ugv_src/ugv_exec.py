@@ -7,11 +7,11 @@ import asyncio
 import logging
 import pymavlink
 #import dronekit
-import actuator
 from mavsdk import System
 import struct
 import time
 import subprocess
+import serial
 
 #When running from boot or without a monitor, this should be the first function that runs
 #There is no Pi to Pi communication or remote desktop without wifi
@@ -70,7 +70,7 @@ def initialize_camera():
             for ids, corners, i in zip(marker_IDs, marker_corners, total_markers):
                 if not push_complete and ids[0] == 23: #change based on marker id
                     print("correct marker detected")
-                    actuator.push_then_retract()
+                    push_then_retract()
                     push_complete = True
                     break
                 cv.polylines(
@@ -225,6 +225,30 @@ def initialize_mp_params():
 
 def initialize_logger():
     print("Hello logger")
+
+'''Actuator Functions'''
+
+def send_command(channel, target):
+    ACTUATOR_SERIAL_PORT = "/dev/serial/by-id/usb-Pololu_Corporation_Pololu_Micro_Maestro_6-Servo_Controller_00454274-if00"
+    ACTUATOR_BAUD_RATE = 9600
+    command = bytearray([0x84, channel, target & 0x7F, (target >> 7) & 0x7F])
+    with serial.Serial(ACTUATOR_SERIAL_PORT, ACTUATOR_BAUD_RATE, timeout=1) as ser:
+        ser.write(command)
+        time.sleep(0.1)
+
+def push():
+    print("Activating Servo...")
+    send_command(0, 8000)
+    time.sleep(7)
+
+def retract():
+    print("Retracting Servo...")
+    send_command(0, 4000)
+    time.sleep(7)
+
+def push_then_retract():
+    push()
+    retract()
 
 def initialize():
     print("initialize")
