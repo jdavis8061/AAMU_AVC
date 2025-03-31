@@ -10,7 +10,26 @@ import pymavlink
 import actuator
 from mavsdk import System
 import struct
-    
+import time
+import subprocess
+
+#When running from boot or without a monitor, this should be the first function that runs
+#There is no Pi to Pi communication or remote desktop without wifi
+#When the wifi connects, most other things that cause errors due to set up time should be settled
+def wait_for_wifi(timeout=60):
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            output = subprocess.check_output("hostname -I", shell=True).decode().strip()
+            if output:
+                print(f"Wifi connected! IP: {output}")
+                return True
+        except Exception:
+            pass
+        time.sleep(5)
+    print("Wifi not detected after timeout. Continuing without Wifi.")
+    return False
+
 def initialize_camera():
     calib_data_path = os.path.join(os.path.dirname(__file__), "..", "MultiMatrix.npz")
 
