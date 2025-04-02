@@ -13,6 +13,7 @@ import serial
 import time
 import struct
 import subprocess
+from pymavlink import mavutil
 
 '''Initialize Functions'''
 def wait_for_wifi(timeout=60):
@@ -131,7 +132,7 @@ async def initialize_pixhawk(drone):
             print(f"-- Connected to UGV rover!")
             break
 
-def initialize_wifi():
+def initialize_wifi_ff():
     print("Hello Wifi")
     global aruco_lat
     aruco_lat = 5.0
@@ -327,48 +328,13 @@ def push_then_retract():
     push()
     retract()
 
-'''Send Waypoint Functions'''
+'''Mission Planner Functions'''
 
-async def pxmini_connect_drone(drone):
-    await drone.connect(system_address="serial:///dev/serial0:57600")
+def initialize_mp_params():
+    print("Hello Mission Planner")
 
-    print("Waiting for drone to connect...")
-    async for state in drone.core.connection_state():
-        if state.is_connected:
-            print("-- Connected to drone!")
-            return drone
-
-async def set_and_send_waypoints(drone, lat, long):
+async def send_mission(rover, lat, long):
     mission_items = []
-
-    mission_items.append(mission_raw.MissionItem(
-         # start seq at 0/sets home
-         0,
-         # MAV_FRAME command. 3 is WGS84 + relative altitude
-         3,
-         # command. 16 is a basic waypoint
-         16,
-         # first one is current
-         1,
-         # auto-continue. 1: True, 0: False
-         1,
-         # param1
-         0,
-         # param2 - Acceptance radius
-         10,
-         # param3 - 0 (pass through the waypoint normally)
-         0,
-         # param4 - Desired yaw angle at waypoint
-         float('nan'),
-         # param5 - latitude
-         int(47.40271757 * 10**7),
-         # param6 - longitude
-         int(8.54285027 * 10**7),
-         # param7 - altitude
-         30.0,
-         # mission_type.
-         0
-     ))
 
     mission_items.append(mission_raw.MissionItem(
         #sets 1st waypoint
@@ -388,12 +354,68 @@ async def set_and_send_waypoints(drone, lat, long):
     ))
 
     print("-- Uploading mission")
-    await drone.mission_raw.upload_mission(mission_items)
+    await rover.mission_raw.upload_mission(mission_items)
     print("-- Done")
 
-async def send_waypoints(drone, lat, long):
-    drone = await pxmini_connect_drone(drone)
-    await set_and_send_waypoints(drone, lat, long)
+def prearms_satisfied():
+    #populate later
+    print("Prearm conditions satisified")
+
+def arm_vehicle(master):
+    # Wait for the heartbeat message from the Pixhawk
+    master.wait_heartbeat()
+
+    print("Heartbeat received from vehicle. Arming...")
+
+    # Send the arm command
+    master.mav.command_long_send(
+        master.target_system,    # target_system
+        master.target_component, # target_component
+        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, # command to arm/disarm
+        0,                       # confirmation
+        1,                       # arm the vehicle (0 for disarm)
+        0, 0, 0, 0, 0, 0         # unused parameters
+    )
+
+    # Wait a bit to ensure the vehicle arms
+    time.sleep(2)
+
+    print("Vehicle armed successfully.")
+
+
+# Function to set mode
+def set_mode(master, mode):
+    # Wait for a heartbeat before sending commands
+    master.wait_heartbeat()
+    print("Heartbeat received from vehicle for mode selection.")
+
+    # Get mode ID from the mode string
+    mode_id = master.mode_mapping()[mode]
+    
+    # Send command to change mode
+    master.mav.set_mode_send(
+        master.target_system,
+        mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
+        mode_id
+    )
+    print(f"Mode set to {mode}")
+
+    #Wait for a moment to ensure mode change
+    time.sleep(2)
+    print("Vehicle now in Auto mode.")
+
+async def create_and_run_mission(rover, master, lat, long):
+    # Wait for a heartbeat before sending commands
+    master.wait_heartbeat()
+    print("Heartbeat received from vehicle.")
+    #sends mission
+    await send_mission(rover, lat, long)
+    #checks Prearm Little
+    await prearms_satisfied()
+    #arms vehicle
+    arm_vehicle(master)
+    # Set mode to AUTO
+    await set_mode(master, "AUTO")
 
 async def test_waypoint_creation(lat, long):
     mission_items = []
@@ -428,19 +450,31 @@ async def test_waypoint_creation(lat, long):
      ))
 
     mission_items.append(mission_raw.MissionItem(
-        #sets 1st waypoint
+        #sets waypoint number, 0 sets home, 1 is 1st waypoint, 2 is 2nd waypoint, etc.
         1,
+        # MAV_FRAME command. 3 is WGS84 + relative altitude
         3,
+        # command. 16 is a basic waypoint
         16,
+        # first one is current
         0,
+        # auto-continue. 1: True, 0: False
         1,
+        # param1
         0,
+        # param2 - Acceptance radius
         10,
+        # param3 - 0 (pass through the waypoint normally)
         0,
+        # param4 - Desired yaw angle at waypoint
         float('nan'),
+        # param5 - latitude
         int(lat * 10**7),
+        # param6 - longitude
         int(long * 10**7),
+        # param7 - altitude
         30.0,
+        # mission_type.
         0
     ))
 
@@ -451,7 +485,7 @@ async def test_waypoint_creation(lat, long):
 
 async def initialize(drone):
     #initialize_logger()
-    initialize_wifi()
+    initialize_wifi_dd()
     initialize_mp_params(drone)
     #initialize_pixhawk(drone)
     #initialize_camera()
@@ -460,8 +494,8 @@ async def initialize(drone):
 async def run():
     push_then_retract()
     wait_for_wifi()
-    initialize_wifi()
-    await test_waypoint_creation(aruco_lat, aruco_long)
+    initialize_wifi_dd()
+    await create_and_run_mission()
     await initialize_camera()
 
 async def finalize():
@@ -469,7 +503,7 @@ async def finalize():
 
 #asyncio.run(run())
 #initialize_wifi()
-initialize_wifi_dd()
+#initialize_wifi_dd()
 
 '''
 if __name__ == "__main__":

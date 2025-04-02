@@ -12,6 +12,8 @@ import struct
 import time
 import subprocess
 import serial
+from pymavlink import mavutil
+from mavsdk import mission_raw
 
 #When running from boot or without a monitor, this should be the first function that runs
 #There is no Pi to Pi communication or remote desktop without wifi
@@ -29,6 +31,8 @@ def wait_for_wifi(timeout=60):
         time.sleep(5)
     print("Wifi not detected after timeout. Continuing without Wifi.")
     return False
+
+'''Camera Functions'''
 
 def initialize_camera():
     calib_data_path = os.path.join(os.path.dirname(__file__), "..", "MultiMatrix.npz")
@@ -119,8 +123,7 @@ def initialize_camera():
     cap.release()
     cv.destroyAllWindows()
 
-'''
-def run_camera():
+'''def run_camera():
     print("running camera")
     while True:
         ret, frame = cap.read()
@@ -219,9 +222,106 @@ def initialize_wifi():
     conn.close()
     server_s.close()
 
+'''Mission Planner Functions'''
 
 def initialize_mp_params():
     print("Hello Mission Planner")
+
+async def send_mission(rover, lat, long):
+    mission_items = []
+
+    mission_items.append(mission_raw.MissionItem(
+        #sets waypoint number, 0 sets home, 1 is 1st waypoint, 2 is 2nd waypoint, etc.
+        1,
+        # MAV_FRAME command. 3 is WGS84 + relative altitude
+        3,
+        # command. 16 is a basic waypoint
+        16,
+        # first one is current
+        0,
+        # auto-continue. 1: True, 0: False
+        1,
+        # param1
+        0,
+        # param2 - Acceptance radius
+        10,
+        # param3 - 0 (pass through the waypoint normally)
+        0,
+        # param4 - Desired yaw angle at waypoint
+        float('nan'),
+        # param5 - latitude
+        int(lat * 10**7),
+        # param6 - longitude
+        int(long * 10**7),
+        # param7 - altitude
+        30.0,
+        # mission_type.
+        0
+    ))
+
+    print("-- Uploading mission")
+    await rover.mission_raw.upload_mission(mission_items)
+    print("-- Done")
+
+def prearms_satisfied():
+    #populate later
+    print("Prearm conditions satisified")
+
+def arm_vehicle(master):
+    # Wait for the heartbeat message from the Pixhawk
+    master.wait_heartbeat()
+
+    print("Heartbeat received from vehicle. Arming...")
+
+    # Send the arm command
+    master.mav.command_long_send(
+        master.target_system,    # target_system
+        master.target_component, # target_component
+        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, # command to arm/disarm
+        0,                       # confirmation
+        1,                       # arm the vehicle (0 for disarm)
+        0, 0, 0, 0, 0, 0         # unused parameters
+    )
+
+    # Wait a bit to ensure the vehicle arms
+    time.sleep(2)
+
+    print("Vehicle armed successfully.")
+
+
+# Function to set mode
+def set_mode(master, mode):
+    # Wait for a heartbeat before sending commands
+    master.wait_heartbeat()
+    print("Heartbeat received from vehicle for mode selection.")
+
+    # Get mode ID from the mode string
+    mode_id = master.mode_mapping()[mode]
+    
+    # Send command to change mode
+    master.mav.set_mode_send(
+        master.target_system,
+        mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
+        mode_id
+    )
+    print(f"Mode set to {mode}")
+
+    #Wait for a moment to ensure mode change
+    time.sleep(2)
+    print("Vehicle now in Auto mode.")
+
+async def create_and_run_mission(rover, master, lat, long):
+    # Wait for a heartbeat before sending commands
+    master.wait_heartbeat()
+    print("Heartbeat received from vehicle.")
+    #sends mission
+    await send_mission(rover, lat, long)
+    #checks Prearm Little
+    await prearms_satisfied()
+    #arms vehicle
+    arm_vehicle(master)
+    # Set mode to AUTO
+    await set_mode(master, "AUTO")
 
 def initialize_logger():
     print("Hello logger")
