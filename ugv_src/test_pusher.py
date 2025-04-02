@@ -18,13 +18,12 @@ def send_command(channel, target):
 def activate_servo():
     print("Activating Servo...")
     send_command(0, 8000)
-    time.sleep(10)
+    time.sleep(8)
 
 def retract_servo():
     print("Retracting Servo...")
     send_command(0, 4000)
-    time.sleep(5)
+    time.sleep(8)
 
 activate_servo()
-time.sleep(2)
 retract_servo()
