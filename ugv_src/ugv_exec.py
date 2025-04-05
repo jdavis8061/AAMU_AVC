@@ -4,8 +4,8 @@ import cv2 as cv
 from cv2 import aruco
 import numpy as np
 import asyncio
-import logging
-import pymavlink
+#import logging
+#import pymavlink
 #import dronekit
 from mavsdk import System
 import struct
@@ -14,11 +14,13 @@ import subprocess
 import serial
 from pymavlink import mavutil
 from mavsdk import mission_raw
+#from mavsdk import action
 
 #When running from boot or without a monitor, this should be the first function that runs
 #There is no Pi to Pi communication or remote desktop without wifi
 #When the wifi connects, most other things that cause errors due to set up time should be settled
 def wait_for_wifi(timeout=60):
+    "Waiting for Wifi"
     start_time = time.time()
     while time.time() - start_time < timeout:
         try:
@@ -196,10 +198,9 @@ def finalize_camera():
 '''
 
 async def initialize_pixhawk(rover):
-    print("Hello Pixhawk")
     print("Waiting for Serial Connection")
     await rover.connect(system_address="serial:///dev/serial0:57600")
-    print("Connecting to Pixhawk...")
+    print("Serial Connection Confirmed. Connecting to Pixhawk...")
 
     async for state in rover.core.connection_state():
         if state.is_connected:
@@ -295,9 +296,12 @@ async def send_mission(rover, lat, lon):
 
     await asyncio.sleep(5)
 
-    print("-- Uploading mission (raw)...")
-    await rover.mission_raw.upload_mission(mission_items)
-    print("-- Mission upload complete.")
+    try:
+        print("-- Uploading mission (raw)...")
+        await rover.mission_raw.upload_mission(mission_items)
+        print("-- Mission upload complete.")
+    except Exception as e:
+        print(f"? Failed to upload mission: {e}")
 
 # Arm the rover
 async def arm_vehicle(drone):
@@ -310,13 +314,45 @@ async def start_mission(drone):
     print("Starting mission (AUTO mode)...")
     await drone.mission_raw.start_mission()
     print("Mission started.")
-
-# Monitor progress
-async def monitor_mission(drone):
-    print("Monitoring mission progress...")
+# Stream GPS updates until mission is finished
+async def stream_position_until_done(drone, mission_complete):
     async for position in drone.telemetry.position():
         print(f"Current location: lat={position.latitude_deg:.6f}, lon={position.longitude_deg:.6f}")
         await asyncio.sleep(1)
+        if mission_complete.is_set():
+            break
+
+# Monitor mission progress via mission_raw
+async def wait_for_mission_completion(drone, mission_complete):
+    last_reported = -1
+    mission_started = False
+
+    async for progress in drone.mission_raw.mission_progress():
+        if progress.current != last_reported:
+            print(f"Home/Launch location =1. Reached waypoint {progress.current} of {progress.total}")
+            last_reported = progress.current
+
+        # Ignore initial home (0) and first waypoint (1)
+        if progress.current >= 2 or (progress.total == 2 and progress.current == 1 and mission_started):
+            print("Mission Complete.")
+            mission_complete.set()
+            break
+
+        # Flag that mission has started once we move off home
+        if progress.current > 0:
+            mission_started = True
+
+# Monitor mission and stop position stream when done
+async def monitor_mission(drone):
+    print("Monitoring mission progress...")
+    mission_complete = asyncio.Event()
+
+    # Run both tasks in parallel
+    await asyncio.gather(
+        stream_position_until_done(drone, mission_complete),
+        wait_for_mission_completion(drone, mission_complete)
+    )
+
 
 def initialize_logger():
     print("Hello logger")
@@ -341,45 +377,54 @@ def retract():
     send_command(0, 4000)
     time.sleep(7)
 
-def push_then_retract():
+async def push_then_retract():
     push()
     retract()
+    print("Push complete")
 
 async def initialize(rover):
-    print("initialize")
+    print("initializing")
     #initialize_logger()
     wait_for_wifi()
     await initialize_pixhawk(rover)
-    await initialize_wifi()
+    #await initialize_wifi()
     #initialize_camera()
     #initialize_mp_params()
+    print("Intialization Complete")
 
 async def run(rover, aruco_lat, aruco_long):
-    print("running UGV application")
-    await wait_for_health(rover)
+    print("Starting run function")
 
     # Replace with your desired waypoint
-
     await send_mission(rover, aruco_lat, aruco_long)
+
+    await wait_for_health(rover)
+
     await asyncio.sleep(10)
     await arm_vehicle(rover)
     await asyncio.sleep(5)
     await start_mission(rover)
     await monitor_mission(rover)
+    await push_then_retract()
+    print("Run function complete")
 
 
-def finalize():
-    print("finalize")
+
+async def finalize(rover):
+    print("Beginning Finalize Function")
+    print("Sending Return To Launch (RTL) command...")
+    await rover.action.return_to_launch()
+    print("RTL command sent. Returning Home")
 
 async def main():
-    print("Starting UGV Application...")
     
     rover = System()
-    aruco_lat = 34.7794089 #temporary until test with UAV
-    aruco_long = -86.5670675 #temporary until test with UAV
+
+    aruco_lat = 34.7799938 #temporary until test with UAV
+    aruco_long = -86.56683423 #temporary until test with UAV
     await initialize(rover)
     await run(rover, aruco_lat, aruco_long)
-    await finalize()
+    await finalize(rover)
 
 
 if __name__ == "__main__":
