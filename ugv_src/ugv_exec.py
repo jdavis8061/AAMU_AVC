@@ -12,9 +12,12 @@ import struct
 import time
 import subprocess
 import serial
-from pymavlink import mavutil
+#from pymavlink import mavutil
 from mavsdk import mission_raw
-#from mavsdk import action
+from mavsdk import action
+from datetime import datetime
+import sys
+import math
 
 #When running from boot or without a monitor, this should be the first function that runs
 #There is no Pi to Pi communication or remote desktop without wifi
@@ -236,6 +239,11 @@ def initialize_wifi():
 def initialize_mp_params():
     print("Hello Mission Planner")
 
+async def get_current_location(rover):
+    async for position in rover.telemetry.position():
+        return position.latitude_deg, position.longitude_deg
+
+
 # Wait until the system is armable and GPS is good
 async def wait_for_health(drone):
     print("Waiting for vehicle to be armable (GPS, system health)...")
@@ -353,9 +361,70 @@ async def monitor_mission(drone):
         wait_for_mission_completion(drone, mission_complete)
     )
 
+def calculate_bearing_to_home(current_lat, current_lon, home_lat, home_lon):
+    # Convert to radians
+    lat1 = math.radians(current_lat)
+    lat2 = math.radians(home_lat)
+    diff_long = math.radians(home_lon - current_lon)
+
+    x = math.sin(diff_long) * math.cos(lat2)
+    y = math.cos(lat1) * math.sin(lat2) - (
+        math.sin(lat1) * math.cos(lat2) * math.cos(diff_long)
+    )
+
+    initial_bearing = math.atan2(x, y)
+    initial_bearing = math.degrees(initial_bearing)
+    compass_bearing = (initial_bearing + 360) % 360
+    return compass_bearing
+
+async def face_home(rover, home_lat, home_long):
+    current_lat, current_long = await get_current_location(rover)
+    heading = calculate_bearing_to_home(current_lat, current_long, home_lat, home_long)
+
+    # Keep current lat/lon, just turn to face the heading
+    await rover.action.goto_location(
+        current_lat,
+        current_long,
+        0,             # Altitude isn't used for ground vehicles
+        heading        # Yaw (degrees)
+    )
+    print(f"?? Turning to face home (heading {heading:.2f}�)...")
+    await asyncio.sleep(5)  # Give time to complete the turn
+
+
+'''Logging Functions'''
+class Tee:
+    def __init__(self, *streams):
+        self.streams = streams
+    def write(self, data):
+        for stream in self.streams:
+            stream.write(data)
+            stream.flush()
+    def flush(self):
+        for stream in self.streams:
+            stream.flush()
 
 def initialize_logger():
-    print("Hello logger")
+    print("Creating Log File")
+    # Create a timestamped log filename in /home/jdavis
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    log_dir = "/home/jdavis/Rover_Logs"
+    log_filename = os.path.join(log_dir, f"ugv_log_{timestamp}.log")
+
+    # Open the log file and redirect stdout and stderr
+    global log_file
+    log_file = open(log_filename, "w")
+    sys.stdout = Tee(sys.__stdout__, log_file)
+    sys.stderr = Tee(sys.__stderr__, log_file)
+    print("Log File Created")
+
+    # Log the start time   
+    print(f"[{datetime.now()}] --- Script STARTED ---")
+
+
+def finalize_logger(log_file):
+    print(f"[{datetime.now()}] --- Script ENDED --- ")
+    log_file.close()
 
 '''Actuator Functions'''
 
@@ -398,6 +467,10 @@ async def run(rover, aruco_lat, aruco_long):
     # Replace with your desired waypoint
     await send_mission(rover, aruco_lat, aruco_long)
 
+    global home_lat, home_long
+    home_lat, home_long = await get_current_location(rover)
+
+
     await wait_for_health(rover)
 
     await asyncio.sleep(10)
@@ -405,6 +478,7 @@ async def run(rover, aruco_lat, aruco_long):
     await asyncio.sleep(5)
     await start_mission(rover)
     await monitor_mission(rover)
+    await face_home(rover, home_lat, home_long)
     await push_then_retract()
     print("Run function complete")
 
@@ -428,9 +502,18 @@ async def main():
 
 
 if __name__ == "__main__":
+    initialize_logger()
 
-    print("Starting UGV Application...")
+    try:
+        print("Starting UGV Application...")
     
-    rover = System()
+        rover = System()
 
-    asyncio.run(main())
+        asyncio.run(main())
+    
+    except Exception as e:
+        print(f"[{datetime.now()}] ERROR: {e}")
+
+    finally:
+        #Logs end time
+        finalize_logger(log_file)
