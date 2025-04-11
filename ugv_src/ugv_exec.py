@@ -221,7 +221,7 @@ def initialize_wifi():
     print ("ArUco Lat & Long temporarily set to ", aruco_lat, " & ", aruco_long)
     print ("Waiting for new values from UAV...")
 
-    HOST = '10.235.254.239'  # Listen on all available interfaces 
+    HOST = '192.168.134.221'  # Listen on all available interfaces 
     PORT = 65432        # Port to listen on (non-privileged ports are > 1023) 
     server_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)     
     server_s.bind((HOST, PORT))     
@@ -254,7 +254,7 @@ async def wait_for_health(drone):
         await asyncio.sleep(1)
 
 # Send a raw mission item (single waypoint)
-async def send_mission(rover, lat, lon):
+async def send_mission(rover, home_lat, home_long, lat, lon, max_retries=5, retry_delay=4):
     mission_items = []
 
     mission_items.append(mission_raw.MissionItem(
@@ -277,9 +277,9 @@ async def send_mission(rover, lat, lon):
          # param4 - Desired yaw angle at waypoint
          float('nan'),
          # param5 - latitude
-         int(47.40271757 * 10**7),
+         int(home_lat * 10**7),
          # param6 - longitude
-         int(8.54285027 * 10**7),
+         int(home_long * 10**7),
          # param7 - altitude
          30.0,
          # mission_type.
@@ -304,12 +304,28 @@ async def send_mission(rover, lat, lon):
 
     await asyncio.sleep(5)
 
-    try:
+    # Retry mechanism
+    attempt = 0
+    while attempt < max_retries:
+        try:
+            print(f"-- Uploading mission (attempt {attempt + 1})...")
+            await rover.mission_raw.upload_mission(mission_items)
+            print("-- Mission upload complete.")
+            break  # Success
+        except Exception as e:
+            print(f"? Upload failed on attempt {attempt + 1}: {e}")
+            attempt += 1
+            if attempt < max_retries:
+                print(f"? Retrying in {retry_delay} seconds...")
+                await asyncio.sleep(retry_delay)
+            else:
+                print("? Max retries reached. Mission upload failed.")
+    '''try:
         print("-- Uploading mission (raw)...")
         await rover.mission_raw.upload_mission(mission_items)
         print("-- Mission upload complete.")
     except Exception as e:
-        print(f"? Failed to upload mission: {e}")
+        print(f"? Failed to upload mission: {e}")'''
 
 # Arm the rover
 async def arm_vehicle(drone):
@@ -453,10 +469,9 @@ async def push_then_retract():
 
 async def initialize(rover):
     print("initializing")
-    #initialize_logger()
     wait_for_wifi()
     await initialize_pixhawk(rover)
-    #await initialize_wifi()
+    await initialize_wifi()
     #initialize_camera()
     #initialize_mp_params()
     print("Intialization Complete")
@@ -464,20 +479,22 @@ async def initialize(rover):
 async def run(rover, aruco_lat, aruco_long):
     print("Starting run function")
 
-    # Replace with your desired waypoint
-    await send_mission(rover, aruco_lat, aruco_long)
-
     global home_lat, home_long
     home_lat, home_long = await get_current_location(rover)
 
+    # Replace with your desired waypoint
+    await send_mission(rover, home_lat, home_long, aruco_lat, aruco_long)
 
+    #print (home_lat, ' & ', home_long)
     await wait_for_health(rover)
 
-    await asyncio.sleep(10)
+    await asyncio.sleep(5)
     await arm_vehicle(rover)
     await asyncio.sleep(5)
     await start_mission(rover)
     await monitor_mission(rover)
+    await face_home(rover, home_lat, home_long)
+    await face_home(rover, home_lat, home_long)
     await face_home(rover, home_lat, home_long)
     await push_then_retract()
     print("Run function complete")
@@ -494,8 +511,8 @@ async def main():
     
     rover = System()
 
-    aruco_lat = 34.7799938 #temporary until test with UAV
-    aruco_long = -86.56683423 #temporary until test with UAV
+    aruco_lat = 32.7289889 #34.7802020 #temporary until test with UAV
+    aruco_long = -97.1265730 #-86.5668093 #temporary until test with UAV
     await initialize(rover)
     await run(rover, aruco_lat, aruco_long)
     await finalize(rover)
