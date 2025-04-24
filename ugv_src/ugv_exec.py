@@ -215,13 +215,13 @@ async def initialize_pixhawk(rover):
 def initialize_wifi():
     print("Hello Wifi")
     global aruco_lat
-    aruco_lat = 5.0
+    aruco_lat = 32.729725
     global aruco_long
-    aruco_long = 5.0
+    aruco_long = -97.126649
     print ("ArUco Lat & Long temporarily set to ", aruco_lat, " & ", aruco_long)
     print ("Waiting for new values from UAV...")
 
-    HOST = '192.168.134.221'  # Listen on all available interfaces 
+    HOST = '192.168.1.6'  # Listen on all available interfaces 
     PORT = 65432        # Port to listen on (non-privileged ports are > 1023) 
     server_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)     
     server_s.bind((HOST, PORT))     
@@ -233,6 +233,7 @@ def initialize_wifi():
     print(f"Received ArUco Lat={aruco_lat}, ArUco Long={aruco_long}")
     conn.close()
     server_s.close()
+    return aruco_lat, aruco_long
 
 '''Mission Planner Functions'''
 
@@ -254,7 +255,7 @@ async def wait_for_health(drone):
         await asyncio.sleep(1)
 
 # Send a raw mission item (single waypoint)
-async def send_mission(rover, home_lat, home_long, lat, lon, max_retries=5, retry_delay=4):
+async def send_mission(rover, home_lat, home_long, lat, lon, max_retries=8, retry_delay=5):
     mission_items = []
 
     mission_items.append(mission_raw.MissionItem(
@@ -471,7 +472,8 @@ async def initialize(rover):
     print("initializing")
     wait_for_wifi()
     await initialize_pixhawk(rover)
-    await initialize_wifi()
+    global final_lat, final_long
+    final_lat, final_long = initialize_wifi()
     #initialize_camera()
     #initialize_mp_params()
     print("Intialization Complete")
@@ -483,7 +485,9 @@ async def run(rover, aruco_lat, aruco_long):
     home_lat, home_long = await get_current_location(rover)
 
     # Replace with your desired waypoint
-    await send_mission(rover, home_lat, home_long, aruco_lat, aruco_long)
+    final_lat = 32.7289911
+    final_long = -97.1264914
+    await send_mission(rover, home_lat, home_long, final_lat, final_long)
 
     #print (home_lat, ' & ', home_long)
     await wait_for_health(rover)
@@ -511,8 +515,10 @@ async def main():
     
     rover = System()
 
-    aruco_lat = 32.7289889 #34.7802020 #temporary until test with UAV
-    aruco_long = -97.1265730 #-86.5668093 #temporary until test with UAV
+    #aruco_lat = 32.7289889 #34.7802020 #temporary until test with UAV
+    #aruco_long = -97.1265730 #-86.5668093 #temporary until test with UAV
+    #aruco_lat = 32.729725
+    #aruco_long = -97.126649
     await initialize(rover)
     await run(rover, aruco_lat, aruco_long)
     await finalize(rover)
@@ -523,9 +529,6 @@ if __name__ == "__main__":
 
     try:
         print("Starting UGV Application...")
-    
-        rover = System()
-
         asyncio.run(main())
     
     except Exception as e:
