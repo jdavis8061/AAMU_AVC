@@ -123,7 +123,7 @@ async def initialize_camera():
 
 
 async def initialize_pixhawk(drone):
-    print("Hello Pixhawk")
+    print("Hello Pixhawk, awaiting serial connection")
     await drone.connect(system_address="serial:///dev/serial0:57600")
     
     print("Waiting for UGV drone to connect...")
@@ -229,8 +229,7 @@ def initialize_logger():
 
 '''Run Functions'''
 
-'''
-def run_camera():
+'''def run_camera():
     print("running camera")
     while True:
         ret, frame = cap.read()
@@ -334,7 +333,37 @@ def initialize_mp_params():
     print("Hello Mission Planner")
 
 async def send_mission(rover, lat, long):
+    #rover = System()
     mission_items = []
+
+    mission_items.append(mission_raw.MissionItem(
+         # start seq at 0/sets home
+         0,
+         # MAV_FRAME command. 3 is WGS84 + relative altitude
+         3,
+         # command. 16 is a basic waypoint
+         16,
+         # first one is current
+         1,
+         # auto-continue. 1: True, 0: False
+         1,
+         # param1
+         0,
+         # param2 - Acceptance radius
+         10,
+         # param3 - 0 (pass through the waypoint normally)
+         0,
+         # param4 - Desired yaw angle at waypoint
+         float('nan'),
+         # param5 - latitude
+         int(47.40271757 * 10**7),
+         # param6 - longitude
+         int(8.54285027 * 10**7),
+         # param7 - altitude
+         30.0,
+         # mission_type.
+         0
+     ))
 
     mission_items.append(mission_raw.MissionItem(
         #sets 1st waypoint
@@ -378,7 +407,7 @@ def arm_vehicle(master):
     )
 
     # Wait a bit to ensure the vehicle arms
-    time.sleep(2)
+    time.sleep(5)
 
     print("Vehicle armed successfully.")
 
@@ -401,7 +430,7 @@ def set_mode(master, mode):
     print(f"Mode set to {mode}")
 
     #Wait for a moment to ensure mode change
-    time.sleep(2)
+    time.sleep(5)
     print("Vehicle now in Auto mode.")
 
 async def create_and_run_mission(rover, master, lat, long):
@@ -417,7 +446,7 @@ async def create_and_run_mission(rover, master, lat, long):
     # Set mode to AUTO
     await set_mode(master, "AUTO")
 
-async def test_waypoint_creation(lat, long):
+async def test_waypoint_creation(rover, lat, long):
     mission_items = []
 
     mission_items.append(mission_raw.MissionItem(
@@ -479,9 +508,34 @@ async def test_waypoint_creation(lat, long):
     ))
 
     print("-- Uploading mission")
-    #await drone.mission_raw.upload_mission(mission_items)
+    await rover.mission_raw.upload_mission(mission_items)
     print("mission items: ", mission_items)
     print("-- Done")
+
+async def test_create_and_run_mission(rover, master, lat, long):
+    #sends mission
+    await send_mission(rover, lat, long)
+    #checks Prearm Little
+    #await prearms_satisfied()
+    #arms vehicle
+    await arm_vehicle(master)
+    # Set mode to AUTO
+    await set_mode(master, "AUTO")
+
+async def listen_for_mission_complete(master):
+    '''Continuously listen for 'Mission Complete' message from Mission Planner'''
+    print("Listening for 'Mission Complete' message...")
+
+    while True:
+        msg = master.recv_match(type='STATUSTEXT', blocking=True)
+        if msg:
+            text = msg.text
+            print(f"Received: {text}")
+
+            if "Mission Complete" in text:
+                print("Mission Complete! Activating Actuator...")
+                await push_then_retract()
+                break #Stops listening after mission completes
 
 async def initialize(drone):
     #initialize_logger()
@@ -516,3 +570,27 @@ if __name__ == "__main__":
     asyncio.run(run())
     asyncio.run(finalize())
 '''
+
+async def run_mission_push_and_return():
+    rover = System()
+    await initialize_pixhawk(rover)
+    await send_mission(rover, 34.7794089, -86.5670675)
+    time.sleep(30)
+    master = mavutil.mavlink_connection('/dev/serial0', baud=57600)
+    # Wait for a heartbeat before sending commands
+    master.wait_heartbeat()
+    print("Heartbeat received from vehicle.")
+    #sends mission
+    #await send_mission(rover, lat, long)
+    #checks Prearm Little
+    #await prearms_satisfied()
+    #arms vehicle
+    arm_vehicle(master)
+    # Set mode to AUTO
+    set_mode(master, "AUTO")
+    #await test_create_and_run_mission(rover, master, 34.7794089, -86.5670675)
+    await listen_for_mission_complete(master)
+    '''await set_mode("MANUAL")
+    test_create_and_run_mission(rover, master, 34.7797263, -86.5669754)'''
+
+asyncio.run(run_mission_push_and_return())
